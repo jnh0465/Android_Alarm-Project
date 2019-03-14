@@ -126,7 +126,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                         String id = (String) dc.getDocument().getData().get("id");
                         String title = (String) dc.getDocument().getData().get("title");
                         String content = (String) dc.getDocument().getData().get("content");
-                        String name = (String) dc.getDocument().getData().get("name");
+                        String name = UserName;
                         String time = (String) dc.getDocument().getData().get("time");
 
                         Board data = new Board(id, title, content, name, time);
@@ -303,15 +303,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.edit_box, null, false);
         builder.setView(view);
 
-        final EditText mWriteTitle = (EditText) view.findViewById(R.id.write_title); //참조
-        final EditText mWriteContent = (EditText) view.findViewById(R.id.write_content);
-        final TextView mWriteName = (TextView) view.findViewById(R.id.write_name);
-        final TextView mWriteTime = (TextView) view.findViewById(R.id.write_time);
-        mWriteName.setText(UserName); //mWriteName에 이메일 넣어주기
-
         final AlertDialog dialog = builder.create(); //dialog 생성
 
-        Button ButtonSubmit = (Button) view.findViewById(R.id.write_upload); //업로드버튼 클릭시
+        Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start);
         ButtonSubmit.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 String id = (String) mStore.collection("board_alarm").document().getId(); //board 테이블의 id값 받아서
@@ -322,13 +316,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
                 String getTime = sdf.format(date); //현재시간 받아오기
 
-                mWriteTime.setText(getTime);
-
                 post.put("id", id); //map 함수에 데이터 담기
-                post.put("title", mWriteTitle.getText().toString());
-                post.put("content", mWriteContent.getText().toString());
-                post.put("name", mWriteName.getText().toString());
-                post.put("time", mWriteTime.getText().toString());
+                post.put("title", "");
+                post.put("content", "");
+                post.put("name", UserName);
+                post.put("time", getTime);
 
                 mStore.collection("board_alarm").document(id).set(post) //firsestore db에 업로드
                         .addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -400,55 +392,49 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.edit_box, null, false);
                     builder.setView(view);
 
-                    final EditText mWriteTitle = (EditText) view.findViewById(R.id.write_title); //참조
-                    final EditText mWriteContent = (EditText) view.findViewById(R.id.write_content);
-                    final TextView mWriteName = (TextView) view.findViewById(R.id.write_name);
-                    final TextView mWriteTime = (TextView) view.findViewById(R.id.write_time);
+//                    final EditText mWriteContent = (EditText) view.findViewById(R.id.write_content);
+//                    final TextView mWriteTime = (TextView) view.findViewById(R.id.write_time);
+//                    mWriteContent.setText(mBoardList.get(getAdapterPosition()).getContent());
+//                    mWriteTime.setText(mBoardList.get(getAdapterPosition()).getTime());
 
-                    mWriteTitle.setText(mBoardList.get(getAdapterPosition()).getTitle()); //선택한 포지션의 값 가져오기
-                    mWriteContent.setText(mBoardList.get(getAdapterPosition()).getContent());
-                    mWriteName.setText(mBoardList.get(getAdapterPosition()).getName());
-                    mWriteTime.setText(mBoardList.get(getAdapterPosition()).getTime());
-
-                    if(mWriteName.getText().toString().equals (user.getEmail())) { //로그인한 유저가 작성자와 동일인이라면{
                         switch (item.getItemId()) {
                             case 10: //수정
-                                final AlertDialog dialog = builder.create(); //dialog 생성
-                                Button ButtonSubmit = (Button) view.findViewById(R.id.write_upload); //업로드버튼 클릭시
-                                ButtonSubmit.setOnClickListener(new View.OnClickListener() {
-                                    public void onClick(View v) { String id = mBoardList.get(getAdapterPosition()).getId(); //클릭한 인덱스의 아이디값 가져오기
-                                        Map<String, Object> post = new HashMap<>();
-
-                                        long now = System.currentTimeMillis();
-                                        Date date = new Date(now);
-                                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                                        String getTimeModi = sdf.format(date); //현재시간 받아오기
-
-                                        post.put("id", id); //map 함수에 데이터 담기
-                                        post.put("title", mWriteTitle.getText().toString());
-                                        post.put("content", mWriteContent.getText().toString());
-                                        post.put("name", mWriteName.getText().toString());
-                                        post.put("time", mWriteTime.getText().toString());
-                                        post.put("time_up", getTimeModi); //수정시간
-
-                                        mStore.collection("board_alarm").document(id).set(post)
-                                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                    @Override
-                                                    public void onSuccess(Void aVoid) {
-                                                        Toast.makeText(MainActivity.this, "수정 완료", Toast.LENGTH_SHORT).show();
-                                                        UploadBoard();
-                                                    }
-                                                })
-                                                .addOnFailureListener(new OnFailureListener() {
-                                                    @Override
-                                                    public void onFailure(@NonNull Exception e) {
-                                                        Toast.makeText(MainActivity.this, "수정 실패", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                });
-                                        dialog.dismiss();
-                                    }
-                                });
-                                dialog.show();
+//                                final AlertDialog dialog = builder.create(); //dialog 생성
+//                                Button ButtonSubmit = (Button) view.findViewById(R.id.write_upload); //업로드버튼 클릭시
+//                                ButtonSubmit.setOnClickListener(new View.OnClickListener() {
+//                                    public void onClick(View v) { String id = mBoardList.get(getAdapterPosition()).getId(); //클릭한 인덱스의 아이디값 가져오기
+//                                        Map<String, Object> post = new HashMap<>();
+//
+//                                        long now = System.currentTimeMillis();
+//                                        Date date = new Date(now);
+//                                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+//                                        String getTimeModi = sdf.format(date); //현재시간 받아오기
+//
+//                                        post.put("id", id); //map 함수에 데이터 담기
+//                                        post.put("title", mWriteTitle.getText().toString());
+//                                        post.put("content", mWriteContent.getText().toString());
+//                                        post.put("name", mWriteName.getText().toString());
+//                                        post.put("time", mWriteTime.getText().toString());
+//                                        post.put("time_up", getTimeModi); //수정시간
+//
+//                                        mStore.collection("board_alarm").document(id).set(post)
+//                                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                                    @Override
+//                                                    public void onSuccess(Void aVoid) {
+//                                                        Toast.makeText(MainActivity.this, "수정 완료", Toast.LENGTH_SHORT).show();
+//                                                        UploadBoard();
+//                                                    }
+//                                                })
+//                                                .addOnFailureListener(new OnFailureListener() {
+//                                                    @Override
+//                                                    public void onFailure(@NonNull Exception e) {
+//                                                        Toast.makeText(MainActivity.this, "수정 실패", Toast.LENGTH_SHORT).show();
+//                                                    }
+//                                                });
+//                                        dialog.dismiss();
+//                                    }
+//                                });
+//                                dialog.show();
                                 break;
 
                             case 20: //삭제
@@ -472,9 +458,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
                                 break;
                         }
-                    }else{
-                        Toast.makeText(MainActivity.this, "작성자가 아닌 유저는 수정, 삭제할 수 없습니다.", Toast.LENGTH_SHORT).show();
-                    }
                     return true;
                 }
             };
