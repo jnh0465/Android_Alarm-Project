@@ -1,5 +1,8 @@
 package com.jiwoolee.android_alarmproject;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,6 +24,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -46,12 +50,18 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
+    AlarmManager alarm_manager;
+    TimePicker alarm_timepicker;
+    PendingIntent pendingIntent;
+    Context context;
+
     private TextView mStatusTextView; //로그인여부 상태
     private EditText mEmailField;     //회원가입필드
     private EditText mPasswordField;
@@ -73,6 +83,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        this.context = this;
 
         mStatusTextView = findViewById(R.id.status); //id값과 연결
         mEmailField = findViewById(R.id.fieldEmail);
@@ -114,7 +125,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void UploadBoard(){ //게시판 쿼리
        mBoardList = new ArrayList<>();
-        FirebaseUser user = mAuth.getCurrentUser();
 
             mStore.collection("board_alarm")
                     .whereEqualTo("name", UserName) //이메일(본인)으로 쿼리
@@ -124,12 +134,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException e) {
                     for(DocumentChange dc : snapshot.getDocumentChanges()){
                         String id = (String) dc.getDocument().getData().get("id");
-                        String title = (String) dc.getDocument().getData().get("title");
+//                        String title = (String) dc.getDocument().getData().get("title");
                         String content = (String) dc.getDocument().getData().get("content");
                         String name = UserName;
                         String time = (String) dc.getDocument().getData().get("time");
 
-                        Board data = new Board(id, title, content, name, time);
+                        Board data = new Board(id, "", content, name, time);
                         mBoardList.add(data);
                     }
                     mAdapter = new BoardAdapter(mBoardList);
@@ -305,9 +315,26 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         final AlertDialog dialog = builder.create(); //dialog 생성
 
+        alarm_manager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarm_timepicker = view.findViewById(R.id.time_picker);
+        final Calendar calendar = Calendar.getInstance();
+        final Intent my_intent = new Intent(this.context, Alarm_Reciver.class);
+
         Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start);
         ButtonSubmit.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                calendar.set(Calendar.HOUR_OF_DAY, alarm_timepicker.getHour()); //시간 세팅
+                calendar.set(Calendar.MINUTE, alarm_timepicker.getMinute());
+
+                int hour = alarm_timepicker.getHour();
+                int minute = alarm_timepicker.getMinute();
+                Toast.makeText(MainActivity.this,"Alarm 예정 " + hour + "시 " + minute + "분",Toast.LENGTH_SHORT).show();
+
+                my_intent.putExtra("state","alarm on"); // reveiver에 값 넘겨주기
+
+                pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, my_intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                alarm_manager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent); // 알람세팅
+
                 String id = (String) mStore.collection("board_alarm").document().getId(); //board 테이블의 id값 받아서
                 Map<String, Object> post = new HashMap<>();
 
@@ -316,9 +343,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
                 String getTime = sdf.format(date); //현재시간 받아오기
 
+                String hour_st = Integer.toString(hour);
+                String minute_st = Integer.toString(minute);
+
                 post.put("id", id); //map 함수에 데이터 담기
                 post.put("title", "");
-                post.put("content", "");
+                post.put("content", hour_st+" : "+minute_st);
                 post.put("name", UserName);
                 post.put("time", getTime);
 
@@ -366,8 +396,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         class MainViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
             private TextView mContentTextView;
             private Button mButton;
-
-            FirebaseUser user = mAuth.getCurrentUser();
 
             public MainViewHolder(@NonNull View itemView) {
                 super(itemView);
