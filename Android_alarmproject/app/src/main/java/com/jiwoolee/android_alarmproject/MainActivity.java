@@ -320,7 +320,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         final Calendar calendar = Calendar.getInstance();
         final Intent my_intent = new Intent(this.context, Alarm_Reciver.class);
 
-        Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start);
+        Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start); //알람 시작
         ButtonSubmit.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 calendar.set(Calendar.HOUR_OF_DAY, alarm_timepicker.getHour()); //시간 세팅
@@ -369,6 +369,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 dialog.dismiss(); //dialog 끄기
             }
         });
+
+        Button alarm_off = view.findViewById(R.id.btn_finish); // 알람 중지
+        alarm_off.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(MainActivity.this,"Alarm 종료",Toast.LENGTH_SHORT).show();
+                // 알람매니저 취소
+                alarm_manager.cancel(pendingIntent);
+
+                my_intent.putExtra("state","alarm off");
+
+                // 알람취소
+                sendBroadcast(my_intent);
+            }
+        });
+
         dialog.show(); //dialog 보여주기
     }
 
