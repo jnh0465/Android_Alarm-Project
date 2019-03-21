@@ -20,8 +20,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TimePicker;
@@ -45,7 +43,6 @@ import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.SimpleDateFormat;
@@ -57,10 +54,8 @@ import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
-    AlarmManager alarm_manager;
-    TimePicker alarm_timepicker;
-    PendingIntent pendingIntent;
-    Context context;
+    private Calendar calendar = Calendar.getInstance();
+    private Intent my_intent;
 
     private TextView mStatusTextView; //로그인여부 상태
     private EditText mEmailField;     //회원가입필드
@@ -79,11 +74,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private FirebaseFirestore mStore = FirebaseFirestore.getInstance(); //firestore 연결
 
+    private SharedPreferences TimePre;  //checkbox값 저장할 SharedPreferences 선언
+    private SharedPreferences.Editor TimePreEdit;
+
+    public static Context mContext; //다른 액티비티에서 MainActivity로 접근할 수 있도록
+
+    AlarmManager alarm_manager; //알람
+    TimePicker alarm_timepicker;
+    PendingIntent pendingIntent;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        this.context = this;
+
+        this.mContext = this;
+        my_intent = new Intent(this.mContext, Alarm_Reciver.class);
 
         mStatusTextView = findViewById(R.id.status); //id값과 연결
         mEmailField = findViewById(R.id.fieldEmail);
@@ -113,6 +119,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 swipe.setRefreshing(false); //새로고침 종료
             }
         });
+
+        TimePre = getSharedPreferences("alarm_hour", 0);       //시간값 저장 위해 getSharedPreferences 사용
+        TimePre = getSharedPreferences("alarm_minute", 0);
+        TimePreEdit = TimePre.edit();
     }
 
     @Override
@@ -126,15 +136,16 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private void UploadBoard(){ //게시판 쿼리
        mBoardList = new ArrayList<>();
 
-            mStore.collection("board_alarm")
-                    .whereEqualTo("name", UserName) //이메일(본인)으로 쿼리
-                    //.orderBy("time", Query.Direction.DESCENDING)
-                    .addSnapshotListener(new EventListener<QuerySnapshot>() { //작성시간 역순으로 정렬
+       mStore.collection("board_alarm")
+               .whereEqualTo("name", UserName) //이메일(본인)으로 쿼리
+               //.orderBy("time", Query.Direction.DESCENDING)
+               .addSnapshotListener(new EventListener<QuerySnapshot>() { //작성시간 역순으로 정렬
                 @Override
                 public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException e) {
                     for(DocumentChange dc : snapshot.getDocumentChanges()){
                         String id = (String) dc.getDocument().getData().get("id");
 //                        String title = (String) dc.getDocument().getData().get("title");
+
                         String content = (String) dc.getDocument().getData().get("content");
                         String name = UserName;
                         String time = (String) dc.getDocument().getData().get("time");
@@ -145,8 +156,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     mAdapter = new BoardAdapter(mBoardList);
                     mRecyclerView.setAdapter(mAdapter);
                 }
-            });
-
+               });
     }
 
     //로그인////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,43 +322,44 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this); //dialog 선언
         View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.edit_box, null, false);
         builder.setView(view);
-
         final AlertDialog dialog = builder.create(); //dialog 생성
 
-        alarm_manager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        alarm_timepicker = view.findViewById(R.id.time_picker);
-        final Calendar calendar = Calendar.getInstance();
-        final Intent my_intent = new Intent(this.context, Alarm_Reciver.class);
+        alarm_timepicker = view.findViewById(R.id.time_picker); //timepicker 참조
 
-        Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start); //알람 시작
+        Button ButtonSubmit = (Button) view.findViewById(R.id.btn_start); //알람 시작버튼
         ButtonSubmit.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 calendar.set(Calendar.HOUR_OF_DAY, alarm_timepicker.getHour()); //시간 세팅
                 calendar.set(Calendar.MINUTE, alarm_timepicker.getMinute());
 
-                int hour = alarm_timepicker.getHour();
+                int hour = alarm_timepicker.getHour(); //시간값 받아오기
                 int minute = alarm_timepicker.getMinute();
-                Toast.makeText(MainActivity.this,"Alarm 예정 " + hour + "시 " + minute + "분",Toast.LENGTH_SHORT).show();
+                String hour_st = Integer.toString(hour);
+                String minute_st = Integer.toString(minute);
 
-                my_intent.putExtra("state","alarm on"); // reveiver에 값 넘겨주기
+                if(hour_st.length()==1){
+                    hour_st="0"+hour_st;
+                }else if(minute_st.length()==1){
+                    minute_st="0"+minute_st;
+                }
 
-                pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, my_intent, PendingIntent.FLAG_UPDATE_CURRENT);
-                alarm_manager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent); // 알람세팅
+                TimePreEdit.putString("alarm_hour", hour_st);
+                TimePreEdit.putString("alarm_minute", minute_st);
+                TimePreEdit.commit();  // SharedPreferences에 저장
 
-                String id = (String) mStore.collection("board_alarm").document().getId(); //board 테이블의 id값 받아서
-                Map<String, Object> post = new HashMap<>();
+                alrarm_start(); //알람 시작
 
                 long now = System.currentTimeMillis();
                 Date date = new Date(now);
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
                 String getTime = sdf.format(date); //현재시간 받아오기
 
-                String hour_st = Integer.toString(hour);
-                String minute_st = Integer.toString(minute);
+                String id = (String) mStore.collection("board_alarm").document().getId(); //board 테이블의 id값 받아서
+                Map<String, Object> post = new HashMap<>(); //맵함수에 담기
 
                 post.put("id", id); //map 함수에 데이터 담기
                 post.put("title", "");
-                post.put("content", hour_st+" : "+minute_st);
+                post.put("content", hour_st+minute_st);
                 post.put("name", UserName);
                 post.put("time", getTime);
 
@@ -366,26 +377,38 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                                 Toast.makeText(MainActivity.this, "업로드 실패", Toast.LENGTH_SHORT).show();
                             }
                         });
+
                 dialog.dismiss(); //dialog 끄기
             }
         });
 
-        Button alarm_off = view.findViewById(R.id.btn_finish); // 알람 중지
-        alarm_off.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(MainActivity.this,"Alarm 종료",Toast.LENGTH_SHORT).show();
-                // 알람매니저 취소
-                alarm_manager.cancel(pendingIntent);
 
-                my_intent.putExtra("state","alarm off");
+//                alrarm_finish(v);
 
-                // 알람취소
-                sendBroadcast(my_intent);
-            }
-        });
 
         dialog.show(); //dialog 보여주기
+    }
+
+    public void alrarm_start(){
+        Toast.makeText(MainActivity.this,"Alarm 예정 " + TimePre.getString("alarm_hour", "") + "시 "
+                + TimePre.getString("alarm_minute", "") + "분",Toast.LENGTH_SHORT).show();
+
+        my_intent.putExtra("state","alarm on"); // reveiver에 값 넘겨주기
+        alarm_manager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, my_intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        alarm_manager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent); // 알람세팅
+
+        Intent intent_alarm = new Intent(MainActivity.this, AlarmActivity.class);
+        startActivity(intent_alarm);
+        //finish();
+    }
+
+    public void alrarm_finish(){
+        Toast.makeText(MainActivity.this,"Alarm 종료",Toast.LENGTH_SHORT).show();
+
+        alarm_manager.cancel(pendingIntent); // 알람매니저 취소
+        my_intent.putExtra("state","alarm off");
+        sendBroadcast(my_intent); // 알람취소
     }
 
     //listener//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,6 +435,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         class MainViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
             private TextView mContentTextView;
             private Button mButton;
+
 
             public MainViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -518,9 +542,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull MainViewHolder mainViewHolder, final int i) { //view\
+        public void onBindViewHolder(@NonNull MainViewHolder mainViewHolder, final int i) { //view
             Board data = mBoardList.get(i);
             mainViewHolder.mContentTextView.setText(data.getContent());
+
+            mainViewHolder.mButton.setOnClickListener(new View.OnClickListener() { //버튼 클릭시
+                @Override
+                public void onClick(View v) {
+                    Context context = v.getContext();
+                    Toast.makeText(context, i +"", Toast.LENGTH_LONG).show();
+
+                }
+            });
+
         }
         @Override
         public int getItemCount() {
