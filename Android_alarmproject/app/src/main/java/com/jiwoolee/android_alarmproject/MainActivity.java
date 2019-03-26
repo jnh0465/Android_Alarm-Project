@@ -544,14 +544,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         @Override
         public void onBindViewHolder(@NonNull MainViewHolder mainViewHolder, final int i) { //view
             Board data = mBoardList.get(i);
-            mainViewHolder.mContentTextView.setText(data.getContent());
+            mainViewHolder.mContentTextView.setText(data.getContent().substring(0,2)+" : "+data.getContent().substring(2,4));
 
             mainViewHolder.mButton.setOnClickListener(new View.OnClickListener() { //버튼 클릭시
                 @Override
                 public void onClick(View v) {
                     Context context = v.getContext();
                     Toast.makeText(context, i +"", Toast.LENGTH_LONG).show();
-
+                    findViewById(R.id.alarm).setBackgroundColor(0xFF00FF00);
                 }
             });
 
