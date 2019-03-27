@@ -74,8 +74,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private FirebaseFirestore mStore = FirebaseFirestore.getInstance(); //firestore 연결
 
-    private SharedPreferences TimePre;  //checkbox값 저장할 SharedPreferences 선언
+    private SharedPreferences TimePre;  //알람 시간값 저장
     private SharedPreferences.Editor TimePreEdit;
+
+    private SharedPreferences ButtonPre; //버튼값 저장
+    private SharedPreferences.Editor ButtonPreEdit;
 
     public static Context mContext; //다른 액티비티에서 MainActivity로 접근할 수 있도록
 
@@ -120,9 +123,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             }
         });
 
-        TimePre = getSharedPreferences("alarm_hour", 0);       //시간값 저장 위해 getSharedPreferences 사용
+        TimePre = getSharedPreferences("alarm_hour", 0);       //getSharedPreferences 정의
         TimePre = getSharedPreferences("alarm_minute", 0);
         TimePreEdit = TimePre.edit();
+
+        ButtonPre = getSharedPreferences("button", 0);
+        ButtonPreEdit = ButtonPre.edit();
     }
 
     @Override
@@ -382,9 +388,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             }
         });
 
-
 //                alrarm_finish(v);
-
 
         dialog.show(); //dialog 보여주기
     }
@@ -546,12 +550,29 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             Board data = mBoardList.get(i);
             mainViewHolder.mContentTextView.setText(data.getContent().substring(0,2)+" : "+data.getContent().substring(2,4));
 
+            if(ButtonPre.getString("button"+i, "").equals("1")) {         //어플을 껐다 켰을 때 버튼 상태를 적용하기 위해 SharedPreferences 내용확인
+                mainViewHolder.mButton.setSelected(true);    //1이면 체크
+            } else {
+                mainViewHolder.mButton.setSelected(false);   //0이면 체크x
+            }
+
             mainViewHolder.mButton.setOnClickListener(new View.OnClickListener() { //버튼 클릭시
                 @Override
                 public void onClick(View v) {
                     Context context = v.getContext();
-                    Toast.makeText(context, i +"", Toast.LENGTH_LONG).show();
-                    findViewById(R.id.alarm).setBackgroundColor(0xFF00FF00);
+                    //Toast.makeText(context, i +"", Toast.LENGTH_LONG).show();
+                    //findViewById(R.id.alarm).setBackgroundColor(0xFF00FF00);
+
+                    v.setSelected(!v.isSelected()); //토글
+                    if (v.isSelected()) { //체크시
+                        ButtonPreEdit.putString("button" + i, "1");                //  1
+                        ButtonPreEdit.commit();
+                        UploadBoard();
+                    } else {
+                        ButtonPreEdit.putString("button" + i, "0");                // 0
+                        ButtonPreEdit.commit();
+                        UploadBoard();
+                    }
                 }
             });
 
