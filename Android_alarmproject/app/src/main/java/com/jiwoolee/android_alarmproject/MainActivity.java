@@ -21,6 +21,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -439,12 +441,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         class MainViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
             private TextView mContentTextView;
             private Button mButton;
+            private RelativeLayout mLayout;
 
 
             public MainViewHolder(@NonNull View itemView) {
                 super(itemView);
                 mContentTextView = itemView.findViewById(R.id.item_content);
                 mButton = itemView.findViewById(R.id.item_button);
+                mLayout = itemView.findViewById(R.id.alarm);
 
                 itemView.setOnCreateContextMenuListener(this); //리스너
             }
@@ -550,10 +554,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             Board data = mBoardList.get(i);
             mainViewHolder.mContentTextView.setText(data.getContent().substring(0,2)+" : "+data.getContent().substring(2,4));
 
-            if(ButtonPre.getString("button"+i, "").equals("1")) {         //어플을 껐다 켰을 때 버튼 상태를 적용하기 위해 SharedPreferences 내용확인
-                mainViewHolder.mButton.setSelected(true);    //1이면 체크
+            if(ButtonPre.getString("button"+i, "").equals("1")) {   //어플을 껐다 켰을 때 버튼 상태를 적용하기 위해 SharedPreferences 내용확인
+                mainViewHolder.mButton.setSelected(true);    //1이면 클릭
+                mainViewHolder.mLayout.setBackgroundColor(0xffcccccc);
             } else {
-                mainViewHolder.mButton.setSelected(false);   //0이면 체크x
+                mainViewHolder.mButton.setSelected(false);   //0이면 클릭x
+                mainViewHolder.mLayout.setBackgroundColor(0xffffffff);
             }
 
             mainViewHolder.mButton.setOnClickListener(new View.OnClickListener() { //버튼 클릭시
@@ -561,13 +567,35 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 public void onClick(View v) {
                     Context context = v.getContext();
                     //Toast.makeText(context, i +"", Toast.LENGTH_LONG).show();
-                    //findViewById(R.id.alarm).setBackgroundColor(0xFF00FF00);
 
                     v.setSelected(!v.isSelected()); //토글
-                    if (v.isSelected()) { //체크시
+                    if (v.isSelected()) { //클릭시
                         ButtonPreEdit.putString("button" + i, "1");                //  1
                         ButtonPreEdit.commit();
                         UploadBoard();
+
+//                        String id = mBoardList.get(i).getId(); //클릭한 인덱스의 아이디값 가져오기
+//                        Toast.makeText(context, id +"", Toast.LENGTH_LONG).show();
+//
+//                        Map<String, Object> post = new HashMap<>();
+//
+//                        post.put("id", id); //map 함수에 데이터 담기
+//                        post.put("state", 1);
+//
+//                        mStore.collection("board_alarm").document(id).set(post)
+//                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                    @Override
+//                                    public void onSuccess(Void aVoid) {
+//                                        Toast.makeText(MainActivity.this, "수정 완료", Toast.LENGTH_SHORT).show();
+//                                        UploadBoard();
+//                                    }
+//                                })
+//                                .addOnFailureListener(new OnFailureListener() {
+//                                    @Override
+//                                    public void onFailure(@NonNull Exception e) {
+//                                        Toast.makeText(MainActivity.this, "수정 실패", Toast.LENGTH_SHORT).show();
+//                                    }
+//                                });
                     } else {
                         ButtonPreEdit.putString("button" + i, "0");                // 0
                         ButtonPreEdit.commit();
